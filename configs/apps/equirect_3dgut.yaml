@@ -1,0 +1,14 @@
+# @package _global_
+
+# Configuration for 360 equirectangular images with 3DGUT tracer
+
+# order in which configs override each other (/* - denotes a relative search path)
+defaults:
+  - /base_gs
+  - /dataset: equirect
+  - /initialization: colmap
+  - /render: 3dgut
+  - _self_
+
+# overwrite of default parameters
+val_frequency: 999999 # never validate
