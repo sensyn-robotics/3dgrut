@@ -180,8 +180,8 @@ else
     uv pip install ninja imageio imageio-ffmpeg
     uv pip install -r tools/viz_requirements.txt -r tools/requirements.txt -r tools/build_requirements.txt
 
-    # Build and install
-    IGNORE_TORCH_VER=1 python setup.py install
+    # Build and install (limit parallel jobs to avoid OOM freeze on CUDA builds)
+    MAX_JOBS=${MAX_JOBS:-4} IGNORE_TORCH_VER=1 python setup.py install
 
     popd > /dev/null
     rm -rf thirdparty/kaolin

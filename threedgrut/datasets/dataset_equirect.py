@@ -201,9 +201,17 @@ class EquirectDataset(Dataset, BoundedMultiViewDataset, DatasetVisualization):
             self.cam_intrinsics = read_colmap_intrinsics_text(cameras_intrinsic_file)
 
     def _get_images_folder(self) -> str:
-        """Get the images folder name with downsample suffix."""
-        downsample_suffix = "" if self.downsample_factor == 1 else f"_{self.downsample_factor}"
-        return f"images{downsample_suffix}"
+        """Get the images folder name with downsample suffix.
+
+        Falls back to 'images/' when the downsampled folder doesn't exist,
+        since __getitem__ handles on-the-fly downsampling.
+        """
+        if self.downsample_factor > 1:
+            ds_folder = os.path.join(self.path, f"images_{self.downsample_factor}")
+            if os.path.isdir(ds_folder):
+                return f"images_{self.downsample_factor}"
+            logger.info(f"Downsampled folder not found ({ds_folder}), falling back to 'images/' with on-the-fly resize")
+        return "images"
 
     def _load_camera_data(self):
         """Load camera poses and image paths."""
@@ -368,6 +376,15 @@ class EquirectDataset(Dataset, BoundedMultiViewDataset, DatasetVisualization):
         # Get pre-computed equirectangular rays for this worker
         rays_ori, rays_dir, pixel_coords = self._get_worker_rays()
 
+        # Provide wide-FOV pinhole intrinsics for tile-based culling/sorting.
+        # Actual rendering uses pre-computed equirect rays, but the tracer needs
+        # camera parameters for its spatial acceleration structure.
+        # Use a very short focal length (~179° FOV) so no Gaussians are culled.
+        w, h = self.image_width, self.image_height
+        focal = 84.0  # ~170° FOV to minimize culling for equirectangular
+        cx, cy = w / 2.0, h / 2.0
+        intrinsics = [focal, focal, cx, cy]
+
         sample = {
             "rgb_gt": data,
             "rays_ori": rays_ori,
@@ -376,6 +393,7 @@ class EquirectDataset(Dataset, BoundedMultiViewDataset, DatasetVisualization):
             "camera_idx": batch["camera_idx"],
             "frame_idx": batch["frame_idx"],
             "pixel_coords": pixel_coords,
+            "intrinsics": intrinsics,
         }
 
         return Batch(**sample)
