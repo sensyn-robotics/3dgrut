@@ -14,10 +14,29 @@ concurrency:
 
 jobs:
   ci-legacy:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
+    name: ci-legacy (CUDA ${{ matrix.cuda_version }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda_version:
+          - "11.8.0"
+          - "12.8.1"
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # when set to "true" but frees about 6 GB
+          tool-cache: true
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
       - name: Install prerequisites
         run: |
           apt-get update
@@ -37,6 +56,8 @@ jobs:
           /opt/conda/bin/conda install -y python=${PYTHON_VERSION}
           /opt/conda/bin/conda clean -ya
           echo "/opt/conda/bin" >> $GITHUB_PATH
+        env:
+          PYTHON_VERSION: "3.11"
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -48,20 +69,21 @@ jobs:
           git config --global --add safe.directory "$(pwd)"
           ./install_env.sh 3dgrut WITH_GCC11
         env:
-          TORCH_CUDA_ARCH_LIST: "7.5" # random arch for testing install
+          CUDA_VERSION: ${{ matrix.cuda_version }}
 
       - name: Smoketest - python train.py --help # better (smoke) testing requires a GPU
         run: |
           conda run -n 3dgrut python train.py --help
 
   ci-uv:
+    name: ci-uv (CUDA ${{ matrix.cuda_version }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         cuda_version:
-          - "11"
-          - "12"
+          - "11.8.0"
+          - "12.8.1"
           # - "13"
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -101,7 +123,7 @@ jobs:
           git config --global --add safe.directory "$(pwd)"
           ./install_env_uv.sh
         env:
-          TORCH_CUDA_ARCH_LIST: "7.5" # random arch for testing install
+          TORCH_CUDA_ARCH_LIST: "9.0" # random arch for testing install
           CUDA_VERSION: ${{ matrix.cuda_version }}
 
       - name: Smoketest - python train.py --help # better (smoke) testing requires a GPU
