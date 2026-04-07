@@ -63,7 +63,9 @@ To mitigate this limitation, we also propose 3DGUT, which enables support for di
 
 ### Option A: Using UV (Recommended)
 
-[uv](https://docs.astral.sh/uv/) provides faster installation and better dependency resolution.
+(Kindly contributed by [@MasahiroOgawa](https://github.com/MasahiroOgawa))
+
+[UV](https://docs.astral.sh/uv/) provides faster installation and better dependency resolution.
 The install scripts automatically find or install a GCC version compatible with your chosen CUDA toolkit.
 
 **Prerequisites:**
